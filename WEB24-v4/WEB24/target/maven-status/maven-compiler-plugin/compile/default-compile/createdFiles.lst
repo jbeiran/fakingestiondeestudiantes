@@ -1,0 +1,8 @@
+controllers\Main.class
+models\Student.class
+connections\ConnectionToDB.class
+com\mycompany\web24\resources\JakartaEE10Resource.class
+servlets\Server.class
+connections\Main.class
+controllers\StudentController.class
+com\mycompany\web24\JakartaRestConfiguration.class
