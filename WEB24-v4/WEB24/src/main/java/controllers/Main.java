@@ -6,18 +6,49 @@ package controllers;
 
 import models.Student;
 
-/**
- *
- * @author Flavio
- */
 public class Main {
     
     public static void main(String[] args) {
-        var sm = new StudentController();
-        var list = sm.getStudents();
-        for (Student s: list) System.out.println(s);
-        if (sm.deleteStudent(11)) System.out.println("se borro");
-        for (Student s: list) System.out.println(s);
+        var studentController = new StudentController();
+        var students = studentController.getStudents();
+        
+        System.out.println("\n=== Lista de Estudiantes Actual ===\n");
+        printStudentList(students);
+        
+        System.out.println("\n=== Intentando eliminar estudiante con ID 11 ===\n");
+        if (studentController.deleteStudent(11)) {
+            System.out.println("✓ Estudiante eliminado correctamente");
+        } else {
+            System.out.println("✗ Error al eliminar estudiante");
+        }
+        
+        System.out.println("\n=== Lista de Estudiantes Actualizada ===\n");
+        students = studentController.getStudents();
+        printStudentList(students);
     }
     
+    private static void printStudentList(java.util.List<Student> students) {
+        if (students.isEmpty()) {
+            System.out.println("No hay estudiantes registrados");
+            return;
+        }
+        
+        String format = "| %-4s | %-20s | %-25s | %-4s | %-5s | %-4s | %-15s |\n";
+        System.out.println("+" + "-".repeat(89) + "+");
+        System.out.printf(format, "ID", "Nombre", "Apellidos", "Edad", "Nota", "Curso", "Tiene Foto");
+        System.out.println("+" + "-".repeat(89) + "+");
+        
+        for (Student s : students) {
+            System.out.printf(format,
+                s.id(),
+                s.name(),
+                s.surnames(),
+                s.age(),
+                s.grade(),
+                s.course(),
+                s.photo() ? "Sí" : "No"
+            );
+        }
+        System.out.println("+" + "-".repeat(89) + "+");
+    }
 }
