@@ -26,12 +26,11 @@ public class StudentController {
     public boolean insertStudent(String name, String surnames, int age, int mark, String address, int course, String familyData, boolean picture) {
         var inserted = true;
         try {
-            this.con = this.connection.getConnection();
-            //if(!this.con.isClosed()) this.con.close();
-            //this.con = this.connection.getConnection();
-            var SQLinput = this.con.prepareStatement(
-                            "insert into students(name, surnames, age, grade, course, family_data, picture, address)"
-                            + " values(?, ?, ?, ?, ?, ?, ?, ?);");
+            // Obtener nueva conexión
+            var con = this.connection.getConnection();
+            var SQLinput = con.prepareStatement(
+                    "insert into students(name, surnames, age, grade, course, family_data, picture, address)"
+                    + " values(?, ?, ?, ?, ?, ?, ?, ?);");
             SQLinput.setString(1, name);
             SQLinput.setString(2, surnames);
             SQLinput.setInt(3, age);
@@ -42,19 +41,21 @@ public class StudentController {
             SQLinput.setString(8, address);
             SQLinput.execute();
             SQLinput.close();
+            con.close(); // Cerrar la conexión después de usarla
         } catch (SQLException e) {
             e.printStackTrace();
-            inserted = !inserted;
-        } finally {
-            return inserted;
+            inserted = false;
         }
+        return inserted;
     }
     
     public boolean updateStudent(String name, String surnames, int age, int mark, String address, int course, String familyData, boolean picture, int id) {
         var updated = true;
-        try (var con = this.connection.getConnection();
+        try {
+            // Obtener nueva conexión
+            var con = this.connection.getConnection();
             var SQLinput = con.prepareStatement("update students set name = ?, surnames = ?, age = ?, grade = ?, address = ?, course = ?,"
-                            + "family_data = ?, picture = ? where id = ?;")) {
+                    + "family_data = ?, picture = ? where id = ?;");
             SQLinput.setString(1, name);
             SQLinput.setString(2, surnames);
             SQLinput.setInt(3, age);
@@ -65,12 +66,13 @@ public class StudentController {
             SQLinput.setBoolean(8, picture);
             SQLinput.setInt(9, id);
             SQLinput.executeUpdate();
+            SQLinput.close();
+            con.close(); // Cerrar la conexión después de usarla
         } catch (SQLException e) {
-            updated = !updated;
             e.printStackTrace();
-        } finally {
-            return updated;
+            updated = false;
         }
+        return updated;
     }
     
     public boolean deleteStudent(int id) {
