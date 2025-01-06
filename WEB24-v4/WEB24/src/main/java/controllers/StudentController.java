@@ -89,19 +89,36 @@ public class StudentController {
 
     public boolean deleteStudent(int id) {
         var deleted = true;
+        Connection con = null;
         try {
-            System.out.println("Intentando borrar al estudiante con id: " + id);
-            // Obtienes otra conexión libre del pool
-            this.con = this.connection.getConnection(); // Esta es otra conexión
-            var SQLinput = this.con.prepareStatement("DELETE FROM students WHERE id = ?;");
+            con = this.connection.getConnection();
+            con.setAutoCommit(false); // Inicio de transacción
+
+            var SQLinput = con.prepareStatement("DELETE FROM students WHERE id = ?;");
             SQLinput.setInt(1, id);
             SQLinput.execute();
             SQLinput.close();
-            this.con.close(); // Y la cierras después de usarla
-            System.out.println("Estudiante con id " + id + " borrado exitosamente.");
+
+            con.commit(); // Confirmar transacción
         } catch (SQLException e) {
+            if (con != null) {
+                try {
+                    con.rollback(); // Revertir en caso de error
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
             e.printStackTrace();
             deleted = false;
+        } finally {
+            if (con != null) {
+                try {
+                    con.setAutoCommit(true);
+                    con.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
         return deleted;
     }
