@@ -28,10 +28,13 @@ public class StudentController {
     public boolean insertStudent(String name, String surnames, int age, int mark, String address, int course,
             String familyData, boolean picture) {
         var inserted = true;
+        Connection con = null;
         try {
             semaphore.acquire();
             try {
-                var con = this.connection.getConnection();
+                con = this.connection.getConnection();
+                con.setAutoCommit(false); // Inicio de transacción
+
                 var SQLinput = con.prepareStatement(
                         "insert into students(name, surnames, age, grade, course, family_data, picture, address)"
                                 + " values(?, ?, ?, ?, ?, ?, ?, ?);");
@@ -43,45 +46,89 @@ public class StudentController {
                 SQLinput.setString(6, familyData);
                 SQLinput.setBoolean(7, picture);
                 SQLinput.setString(8, address);
-                SQLinput.execute();
+
+                SQLinput.executeUpdate();
                 SQLinput.close();
-                con.close(); // Cerrar la conexión después de usarla
+
+                con.commit(); // Confirmar transacción
+            } catch (SQLException e) {
+                if (con != null) {
+                    try {
+                        con.rollback(); // Revertir en caso de error
+                    } catch (SQLException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+                e.printStackTrace();
+                inserted = false;
             } finally {
+                if (con != null) {
+                    try {
+                        con.setAutoCommit(true);
+                        con.close();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                }
                 semaphore.release();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             inserted = false;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            inserted = false;
         }
         return inserted;
     }
 
-    public boolean updateStudent(String name, String surnames, int age, int mark, String address, int course,
-            String familyData, boolean picture, int id) {
+    public boolean updateStudent(String name, String surnames, int age, int mark,
+            String address, int course, String familyData, boolean picture, int id) {
         var updated = true;
+        Connection con = null;
         try {
-            // Obtener nueva conexión
-            var con = this.connection.getConnection();
-            var SQLinput = con.prepareStatement(
-                    "update students set name = ?, surnames = ?, age = ?, grade = ?, address = ?, course = ?,"
-                            + "family_data = ?, picture = ? where id = ?;");
-            SQLinput.setString(1, name);
-            SQLinput.setString(2, surnames);
-            SQLinput.setInt(3, age);
-            SQLinput.setInt(4, mark);
-            SQLinput.setString(5, address);
-            SQLinput.setInt(6, course);
-            SQLinput.setString(7, familyData);
-            SQLinput.setBoolean(8, picture);
-            SQLinput.setInt(9, id);
-            SQLinput.executeUpdate();
-            SQLinput.close();
-            con.close(); // Cerrar la conexión después de usarla
-        } catch (SQLException e) {
-            e.printStackTrace();
+            semaphore.acquire();
+            try {
+                con = this.connection.getConnection();
+                con.setAutoCommit(false); // Inicio de transacción
+
+                var SQLinput = con.prepareStatement(
+                        "update students set name = ?, surnames = ?, age = ?, grade = ?, " +
+                                "address = ?, course = ?, family_data = ?, picture = ? where id = ?;");
+                SQLinput.setString(1, name);
+                SQLinput.setString(2, surnames);
+                SQLinput.setInt(3, age);
+                SQLinput.setInt(4, mark);
+                SQLinput.setString(5, address);
+                SQLinput.setInt(6, course);
+                SQLinput.setString(7, familyData);
+                SQLinput.setBoolean(8, picture);
+                SQLinput.setInt(9, id);
+
+                SQLinput.executeUpdate();
+                SQLinput.close();
+
+                con.commit(); // Confirmar transacción
+            } catch (SQLException e) {
+                if (con != null) {
+                    try {
+                        con.rollback(); // Revertir en caso de error
+                    } catch (SQLException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+                e.printStackTrace();
+                updated = false;
+            } finally {
+                if (con != null) {
+                    try {
+                        con.setAutoCommit(true);
+                        con.close();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                }
+                semaphore.release();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             updated = false;
         }
         return updated;
@@ -125,30 +172,55 @@ public class StudentController {
 
     public Student getStudent(int id) {
         Student student = null;
+        Connection con = null;
         try {
-            if (!this.con.isClosed())
-                this.con.close();
-            this.con = this.connection.getConnection();
-            var SQLinput = this.con.prepareStatement("select * from students where id = ?;");
-            SQLinput.setInt(1, id);
-            var resultSet = SQLinput.executeQuery();
-            if (resultSet.next()) {
-                System.out.println("data.StudentManagement.getStudent()");
-                student = new Student(resultSet.getInt("id"),
-                        resultSet.getString("name"),
-                        resultSet.getString("surnames"),
-                        resultSet.getInt("age"),
-                        resultSet.getInt("grade"),
-                        resultSet.getInt("course"),
-                        resultSet.getString("family_data"),
-                        resultSet.getString("address"),
-                        resultSet.getBoolean("picture"));
+            semaphore.acquire();
+            try {
+                con = this.connection.getConnection();
+                con.setAutoCommit(false);
+
+                var SQLinput = con.prepareStatement("select * from students where id = ?;");
+                SQLinput.setInt(1, id);
+                var resultSet = SQLinput.executeQuery();
+
+                if (resultSet.next()) {
+                    student = new Student(
+                            resultSet.getInt("id"),
+                            resultSet.getString("name"),
+                            resultSet.getString("surnames"),
+                            resultSet.getInt("age"),
+                            resultSet.getInt("grade"),
+                            resultSet.getInt("course"),
+                            resultSet.getString("family_data"),
+                            resultSet.getString("address"),
+                            resultSet.getBoolean("picture"));
+                }
+
+                resultSet.close();
+                SQLinput.close();
+                con.commit();
+            } catch (SQLException e) {
+                if (con != null) {
+                    try {
+                        con.rollback();
+                    } catch (SQLException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+                e.printStackTrace();
+            } finally {
+                if (con != null) {
+                    try {
+                        con.setAutoCommit(true);
+                        con.close();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                }
+                semaphore.release();
             }
-            SQLinput.close();
-            resultSet.close();
-            this.con.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
         return student;
     }
