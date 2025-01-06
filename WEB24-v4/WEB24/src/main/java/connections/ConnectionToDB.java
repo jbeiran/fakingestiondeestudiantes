@@ -30,11 +30,11 @@ public class ConnectionToDB {
              config.setJdbcUrl("jdbc:sqlite:" + resourceUrl.getPath());
             config.setDriverClassName("org.sqlite.JDBC");
 
-            // Opciones adicionales
-            config.setMaximumPoolSize(10); // Máximo número de conexiones en el pool
-            config.setMinimumIdle(4);     // Conexiones mínimas inactivas
-            config.setIdleTimeout(30000); // Tiempo antes de cerrar conexiones inactivas (30s)
-            config.setConnectionTimeout(30000); // Tiempo máximo de espera para obtener una conexión (30s)
+            // Configuración optimizada para SQLite
+            config.setMaximumPoolSize(1); // Importante: limitar a 1 para SQLite
+            config.setConnectionTimeout(30000);
+            config.addDataSourceProperty("journal_mode", "WAL"); // Write-Ahead Logging
+            config.addDataSourceProperty("synchronous", "NORMAL");
 
             // Inicializar el datasource
             this.dataSource = new HikariDataSource(config);
